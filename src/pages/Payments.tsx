@@ -1,324 +1,344 @@
-import { useEffect, useState } from 'react'
-import { paymentsAPI } from '../lib/api'
-import { 
-  Plus, 
-  Search, 
-  Copy, 
-  CheckCircle, 
-  Clock, 
-  XCircle,
-  ArrowLeft
-} from 'lucide-react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { CreditCard, Copy, ExternalLink, QrCode } from 'lucide-react'
+import { Button, Input, Card, Badge } from '../components/ui'
 import toast from 'react-hot-toast'
 
-interface Payment {
-  id: string
-  payment_id: string
-  chain: string
-  token: string
+interface PaymentFormData {
   amount: string
-  recipient_address: string
-  status: string
-  created_at: string
-  expires_at?: string
+  token: string
+  chain: string
+  description: string
 }
 
+const tokens = [
+  { value: 'USDC', label: 'USDC' },
+  { value: 'USDT', label: 'USDT' },
+  { value: 'DAI', label: 'DAI' },
+  { value: 'BUSD', label: 'BUSD' },
+]
+
+const chains = [
+  { value: 'ethereum', label: 'Ethereum', color: 'bg-blue-500' },
+  { value: 'polygon', label: 'Polygon', color: 'bg-purple-500' },
+  { value: 'bsc', label: 'BSC', color: 'bg-yellow-500' },
+  { value: 'avalanche', label: 'Avalanche', color: 'bg-red-500' },
+  { value: 'tron', label: 'Tron', color: 'bg-orange-500' },
+  { value: 'solana', label: 'Solana', color: 'bg-green-500' },
+]
+
+const recentPayments = [
+  {
+    id: 'pay_123456',
+    amount: '$1,250.00',
+    token: 'USDC',
+    chain: 'Ethereum',
+    status: 'completed',
+    createdAt: '2 hours ago',
+    paymentUrl: 'https://pay.merchant.com/123456'
+  },
+  {
+    id: 'pay_123457',
+    amount: '$850.00',
+    token: 'USDT',
+    chain: 'Polygon',
+    status: 'pending',
+    createdAt: '4 hours ago',
+    paymentUrl: 'https://pay.merchant.com/123457'
+  },
+  {
+    id: 'pay_123458',
+    amount: '$2,100.00',
+    token: 'USDC',
+    chain: 'BSC',
+    status: 'completed',
+    createdAt: '1 day ago',
+    paymentUrl: 'https://pay.merchant.com/123458'
+  },
+]
+
 export default function Payments() {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-
-  useEffect(() => {
-    fetchPayments()
-  }, [])
-
-  const fetchPayments = async () => {
-    try {
-      const response = await paymentsAPI.list()
-      setPayments(response.data)
-    } catch (error) {
-      console.error('Failed to fetch payments:', error)
-      toast.error('Failed to fetch payments')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { color: 'warning', icon: Clock },
-      completed: { color: 'success', icon: CheckCircle },
-      failed: { color: 'danger', icon: XCircle },
-      expired: { color: 'danger', icon: XCircle },
-      refunded: { color: 'info', icon: ArrowLeft }
-    }
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
-    const Icon = config.icon
-    
-    return (
-      <span className={`badge badge-${config.color} flex items-center`}>
-        <Icon className="h-3 w-3 mr-1" />
-        {status}
-      </span>
-    )
-  }
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success('Copied to clipboard!')
-  }
-
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.payment_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.recipient_address.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter
-    return matchesSearch && matchesStatus
+  const [selectedChain, setSelectedChain] = useState('ethereum')
+  const [paymentPreview, setPaymentPreview] = useState({
+    amount: '0.00',
+    token: 'USDC',
+    chain: 'Ethereum',
+    fee: '0.00',
+    total: '0.00'
   })
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-      </div>
-    )
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<PaymentFormData>({
+    defaultValues: {
+      amount: '',
+      token: 'USDC',
+      chain: 'ethereum',
+      description: ''
+    }
+  })
+
+  const watchedAmount = watch('amount')
+  const watchedToken = watch('token')
+  const watchedChain = watch('chain')
+
+  // Update preview when form changes
+  useState(() => {
+    const selectedChainData = chains.find(c => c.value === watchedChain)
+    const fee = watchedAmount ? (parseFloat(watchedAmount) * 0.0025).toFixed(2) : '0.00'
+    const total = watchedAmount ? (parseFloat(watchedAmount) + parseFloat(fee)).toFixed(2) : '0.00'
+    
+    setPaymentPreview({
+      amount: watchedAmount || '0.00',
+      token: watchedToken,
+      chain: selectedChainData?.label || 'Ethereum',
+      fee,
+      total
+    })
+  }, [watchedAmount, watchedToken, watchedChain])
+
+  const onSubmit = async (data: PaymentFormData) => {
+    try {
+      // Here you would call your API to create the payment
+      console.log('Creating payment:', data)
+      toast.success('Payment link created successfully!')
+    } catch (error) {
+      toast.error('Failed to create payment link')
+    }
+  }
+
+  const copyPaymentUrl = (url: string) => {
+    navigator.clipboard.writeText(url)
+    toast.success('Payment URL copied to clipboard!')
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'success'
+      case 'pending':
+        return 'warning'
+      case 'failed':
+        return 'danger'
+      default:
+        return 'default'
+    }
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-        <p className="text-gray-600">Manage your payment requests</p>
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900">Payment Processing</h1>
+        <p className="text-slate-600">Create payment links and manage your payment requests</p>
       </div>
 
-      {/* Filters */}
-      <div className="card mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search payments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10"
-              />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Payment Form */}
+        <div className="lg:col-span-2">
+          <Card>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Create Payment</h3>
             </div>
-          </div>
-          <div className="md:w-48">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="expired">Expired</option>
-              <option value="refunded">Refunded</option>
-            </select>
-          </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="btn btn-primary flex items-center"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Create Payment
-          </button>
-        </div>
-      </div>
-
-      {/* Payments List */}
-      <div className="card">
-        {filteredPayments.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Plus className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm || statusFilter !== 'all' 
-                ? 'Try adjusting your search or filters'
-                : 'Create your first payment request to get started'
-              }
-            </p>
-            {!searchTerm && statusFilter === 'all' && (
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="btn btn-primary"
-              >
-                Create Payment
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Chain
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  {...register('amount', { required: 'Amount is required' })}
+                  error={errors.amount?.message}
+                />
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Token
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">
-                          {payment.payment_id}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(payment.payment_id)}
-                          className="ml-2 p-1 text-gray-400 hover:text-gray-600"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900 capitalize">
-                        {payment.chain}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
-                        {payment.token}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-medium text-gray-900">
-                        {payment.amount} {payment.token}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(payment.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(payment.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-primary-600 hover:text-primary-900">
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Create Payment Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Create Payment Request</h3>
-                <button
-                  onClick={() => setShowCreateForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
+                  </label>
+                  <select 
+                    {...register('token')}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {tokens.map(token => (
+                      <option key={token.value} value={token.value}>
+                        {token.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Chain
-                  </label>
-                  <select className="input">
-                    <option value="ethereum">Ethereum</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="bsc">BSC</option>
-                    <option value="avalanche">Avalanche</option>
-                    <option value="tron">Tron</option>
-                    <option value="solana">Solana</option>
-                  </select>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Blockchain
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {chains.map(chain => (
+                    <button 
+                      key={chain.value}
+                      type="button"
+                      onClick={() => setSelectedChain(chain.value)}
+                      className={`p-3 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors ${
+                        selectedChain === chain.value 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className={`w-3 h-3 rounded-full mx-auto mb-2 ${chain.color}`}></div>
+                        <span className="text-sm font-medium text-slate-700">{chain.label}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Token
-                  </label>
-                  <select className="input">
-                    <option value="USDC">USDC</option>
-                    <option value="USDT">USDT</option>
-                    <option value="DAI">DAI</option>
-                    <option value="BUSD">BUSD</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Amount
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input"
-                    placeholder="100.00"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Recipient Address
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
-                  />
-                </div>
-                
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateForm(false)}
-                    className="flex-1 btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 btn btn-primary"
-                  >
-                    Create Payment
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+                <input type="hidden" {...register('chain')} value={selectedChain} />
+              </div>
+              
+              <Input
+                label="Description"
+                placeholder="Payment description..."
+                {...register('description')}
+              />
+              
+              <Button type="submit" className="w-full">
+                Create Payment Link
+              </Button>
+            </form>
+          </Card>
         </div>
-      )}
+        
+        {/* Payment Preview */}
+        <div>
+          <Card>
+            <h3 className="text-lg font-semibold text-slate-900 mb-6">Payment Preview</h3>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Amount:</span>
+                <span className="font-semibold">${paymentPreview.amount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Token:</span>
+                <span className="font-semibold">{paymentPreview.token}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Network:</span>
+                <span className="font-semibold">{paymentPreview.chain}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Fee (0.25%):</span>
+                <span className="font-semibold">${paymentPreview.fee}</span>
+              </div>
+              
+              <div className="border-t border-slate-200 pt-4">
+                <div className="flex justify-between">
+                  <span className="text-slate-900 font-semibold">Total:</span>
+                  <span className="text-slate-900 font-bold">${paymentPreview.total}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Recent Payments */}
+      <Card>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-slate-900">Recent Payments</h3>
+          <Button variant="outline">View All</Button>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Payment ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Chain
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Created
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {recentPayments.map((payment, index) => (
+                <tr key={index} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
+                        <CreditCard className="w-4 h-4 text-slate-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          {payment.id}
+                        </p>
+                        <p className="text-sm text-slate-500">{payment.token}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <p className="text-sm font-semibold text-slate-900">{payment.amount}</p>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${
+                        chains.find(c => c.label === payment.chain)?.color || 'bg-slate-500'
+                      }`}></div>
+                      <span className="text-sm text-slate-700">{payment.chain}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge variant={getStatusVariant(payment.status)}>
+                      {payment.status}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    {payment.createdAt}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => copyPaymentUrl(payment.paymentUrl)}
+                        className="text-slate-400 hover:text-slate-600"
+                        title="Copy URL"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => window.open(payment.paymentUrl, '_blank')}
+                        className="text-slate-400 hover:text-slate-600"
+                        title="Open Payment"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="text-slate-400 hover:text-slate-600"
+                        title="QR Code"
+                      >
+                        <QrCode className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   )
 }

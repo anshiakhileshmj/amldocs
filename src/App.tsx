@@ -49,6 +49,12 @@ function App() {
       <Route path="/webhooks" element={
         merchant ? <Layout><Webhooks /></Layout> : <Navigate to="/login" />
       } />
+      <Route path="/analytics" element={
+        merchant ? <Layout><div className="p-6"><h1 className="text-2xl font-semibold">Analytics</h1><p className="text-slate-600">Advanced analytics coming soon...</p></div></Layout> : <Navigate to="/login" />
+      } />
+      <Route path="/api-keys" element={
+        merchant ? <Layout><div className="p-6"><h1 className="text-2xl font-semibold">API Keys</h1><p className="text-slate-600">API key management coming soon...</p></div></Layout> : <Navigate to="/login" />
+      } />
       <Route path="/profile" element={
         merchant ? <Layout><Profile /></Layout> : <Navigate to="/login" />
       } />

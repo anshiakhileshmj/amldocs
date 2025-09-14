@@ -1,272 +1,86 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { merchantsAPI } from '../lib/api'
 import { 
-  CreditCard, 
+  DollarSign, 
+  Receipt, 
   Wallet, 
-  TrendingUp, 
-  Settings, 
-  Copy,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  CheckCircle
+  CheckCircle,
+  TrendingUp
 } from 'lucide-react'
-import toast from 'react-hot-toast'
-
-interface DashboardStats {
-  total_payments: number
-  total_transactions: number
-  total_payouts: number
-  active_wallets: number
-}
+import KPICard from '../components/dashboard/KPICard'
+import RevenueChart from '../components/dashboard/RevenueChart'
+import ChainVolume from '../components/dashboard/ChainVolume'
+import RecentTransactions from '../components/dashboard/RecentTransactions'
 
 export default function Dashboard() {
-  const { merchant, refreshApiKey } = useAuth()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const { merchant } = useAuth()
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalTransactions: 0,
+    activeWallets: 0,
+    successRate: 0
+  })
 
   useEffect(() => {
-    if (merchant) {
-      fetchStats()
-    }
-  }, [merchant])
-
-  const fetchStats = async () => {
-    try {
-      const response = await merchantsAPI.getStats()
-      setStats(response.data.statistics)
-    } catch (error) {
-      console.error('Failed to fetch stats:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRefreshApiKey = async () => {
-    setRefreshing(true)
-    const success = await refreshApiKey()
-    if (success) {
-      setShowApiKey(true)
-    }
-    setRefreshing(false)
-  }
-
-  const copyApiKey = () => {
-    if (merchant?.api_key) {
-      navigator.clipboard.writeText(merchant.api_key)
-      toast.success('API key copied to clipboard!')
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-      </div>
-    )
-  }
+    // Fetch dashboard stats
+    // This would typically come from your API
+    setStats({
+      totalRevenue: 24567.89,
+      totalTransactions: 1234,
+      activeWallets: 8,
+      successRate: 98.7
+    })
+  }, [])
 
   return (
-    <div>
-      {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {merchant?.company_name}!
-        </h1>
-        <p className="text-gray-600">
-          Manage your stablecoin payments across multiple blockchains
-        </p>
+    <div className="space-y-6">
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard
+          title="Total Revenue"
+          value="$24,567"
+          change={{ value: "+12.5% from last month", type: "increase" }}
+          icon={DollarSign}
+          iconColor="text-emerald-600"
+          iconBg="bg-emerald-100"
+        />
+        
+        <KPICard
+          title="Transactions"
+          value="1,234"
+          change={{ value: "+8.2% from last month", type: "increase" }}
+          icon={Receipt}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-100"
+        />
+        
+        <KPICard
+          title="Active Wallets"
+          value="8"
+          change={{ value: "Across 6 chains", type: "increase" }}
+          icon={Wallet}
+          iconColor="text-purple-600"
+          iconBg="bg-purple-100"
+        />
+        
+        <KPICard
+          title="Success Rate"
+          value="98.7%"
+          change={{ value: "Excellent", type: "increase" }}
+          icon={CheckCircle}
+          iconColor="text-emerald-600"
+          iconBg="bg-emerald-100"
+        />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CreditCard className="h-8 w-8 text-primary-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Payments</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {stats?.total_payments || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="h-8 w-8 text-success-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Transactions</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {stats?.total_transactions || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Wallet className="h-8 w-8 text-warning-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Payouts</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {stats?.total_payouts || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Settings className="h-8 w-8 text-gray-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Active Wallets</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {stats?.active_wallets || 0}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Charts and Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RevenueChart />
+        <ChainVolume />
       </div>
 
-      {/* API Key Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">API Key</h3>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="btn btn-secondary text-sm"
-              >
-                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-              <button
-                onClick={handleRefreshApiKey}
-                disabled={refreshing}
-                className="btn btn-warning text-sm"
-              >
-                {refreshing ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your API Key
-              </label>
-              <div className="relative">
-                <input
-                  type={showApiKey ? 'text' : 'password'}
-                  value={merchant?.api_key || ''}
-                  readOnly
-                  className="input pr-20 font-mono text-sm"
-                />
-                <button
-                  onClick={copyApiKey}
-                  className="absolute inset-y-0 right-0 px-3 flex items-center bg-primary-600 text-white rounded-r-lg hover:bg-primary-700"
-                >
-                  <Copy className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
-              <p className="text-xs text-warning-800">
-                <strong>Security Note:</strong> Keep your API key secure and never share it publicly. 
-                Use it in the Authorization header: <code>Bearer YOUR_API_KEY</code>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <Link to="/payments" className="block w-full btn btn-primary text-center">
-              Create Payment Request
-            </Link>
-            <Link to="/wallets" className="block w-full btn btn-secondary text-center">
-              Manage Wallets
-            </Link>
-            <Link to="/payouts" className="block w-full btn btn-secondary text-center">
-              Process Payouts
-            </Link>
-            <Link to="/transactions" className="block w-full btn btn-secondary text-center">
-              View Transactions
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Supported Chains */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Supported Blockchains</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { name: 'Ethereum', symbol: 'Ξ', color: 'blue', tokens: ['USDC', 'USDT', 'DAI'] },
-            { name: 'Polygon', symbol: '⬟', color: 'purple', tokens: ['USDC', 'USDT', 'DAI'] },
-            { name: 'BSC', symbol: 'B', color: 'yellow', tokens: ['USDC', 'USDT', 'BUSD'] },
-            { name: 'Avalanche', symbol: 'A', color: 'red', tokens: ['USDC', 'USDT', 'DAI'] },
-            { name: 'Tron', symbol: 'T', color: 'orange', tokens: ['USDC', 'USDT'] },
-            { name: 'Solana', symbol: 'S', color: 'green', tokens: ['USDC', 'USDT'] },
-          ].map((chain) => (
-            <div key={chain.name} className="text-center p-4 border border-gray-200 rounded-lg">
-              <div className={`bg-${chain.color}-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2`}>
-                <span className={`text-xl font-bold text-${chain.color}-600`}>{chain.symbol}</span>
-              </div>
-              <h4 className="font-medium text-gray-900">{chain.name}</h4>
-              <p className="text-xs text-gray-500">{chain.tokens.join(', ')}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* API Documentation */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">API Documentation</h3>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-medium text-gray-900 mb-2">Base URL</h4>
-            <code className="block bg-gray-100 p-2 rounded text-sm">
-              {import.meta.env.VITE_API_URL}
-            </code>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-900 mb-2">Authentication</h4>
-            <code className="block bg-gray-100 p-2 rounded text-sm">
-              Authorization: Bearer YOUR_API_KEY
-            </code>
-          </div>
-        </div>
-        <div className="mt-4">
-          <a
-            href="/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary"
-          >
-            View Full Documentation
-          </a>
-        </div>
-      </div>
+      {/* Recent Transactions */}
+      <RecentTransactions />
     </div>
   )
 }

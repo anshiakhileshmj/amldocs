@@ -5,14 +5,18 @@ import {
   CreditCard, 
   LayoutDashboard, 
   Wallet, 
-  CreditCard as PaymentsIcon,
-  TrendingUp,
-  Send,
+  Receipt,
+  ArrowUpRight,
   Webhook,
+  BarChart3,
+  Key,
+  Settings,
   User,
   LogOut,
   Menu,
-  X
+  X,
+  Search,
+  Bell
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -21,13 +25,14 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Payments', href: '/payments', icon: PaymentsIcon },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true },
+  { name: 'Payments', href: '/payments', icon: CreditCard, badge: '12' },
+  { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Wallets', href: '/wallets', icon: Wallet },
-  { name: 'Transactions', href: '/transactions', icon: TrendingUp },
-  { name: 'Payouts', href: '/payouts', icon: Send },
+  { name: 'Payouts', href: '/payouts', icon: ArrowUpRight },
   { name: 'Webhooks', href: '/webhooks', icon: Webhook },
-  { name: 'Profile', href: '/profile', icon: User },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'API Keys', href: '/api-keys', icon: Key },
 ]
 
 export default function Layout({ children }: LayoutProps) {
@@ -42,97 +47,189 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar */}
+    <div className="min-h-screen bg-slate-50">
+      {/* Mobile sidebar overlay */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-16 items-center justify-between px-4">
-            <div className="flex items-center">
-              <CreditCard className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">Merchant</span>
+        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)}></div>
+        <div className="fixed left-0 top-0 h-full w-64 bg-slate-800 text-white">
+          <div className="p-6 border-b border-slate-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">M</span>
+              </div>
+              <span className="text-xl font-semibold">MerchantPay</span>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-6 w-6" />
+          </div>
+          
+          <div className="p-4 border-b border-slate-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-medium">JD</span>
+              </div>
+              <div>
+                <p className="font-medium">{merchant?.company_name || 'John Doe'}</p>
+                <p className="text-sm text-slate-400">Merchant</p>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 p-4">
+            <ul className="space-y-2">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href
+                return (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                      {item.badge && (
+                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
+
+          <div className="p-4 border-t border-slate-700">
+            <button className="w-full text-left p-3 rounded-lg hover:bg-slate-700 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Settings className="w-5 h-5" />
+                <span>Settings</span>
+              </div>
             </button>
           </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
-                      ? 'bg-primary-100 text-primary-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4">
-            <CreditCard className="h-8 w-8 text-primary-600" />
-            <span className="ml-2 text-xl font-bold text-gray-900">Merchant</span>
+        <div className="flex flex-col flex-grow bg-slate-800 text-white">
+          {/* Logo Section */}
+          <div className="p-6 border-b border-slate-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">M</span>
+              </div>
+              <span className="text-xl font-semibold">MerchantPay</span>
+            </div>
           </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
-                      ? 'bg-primary-100 text-primary-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
+
+          {/* User Profile Section */}
+          <div className="p-4 border-b border-slate-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-medium">JD</span>
+              </div>
+              <div>
+                <p className="font-medium">{merchant?.company_name || 'John Doe'}</p>
+                <p className="text-sm text-slate-400">Merchant</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav className="flex-1 p-4">
+            <ul className="space-y-2">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href
+                return (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                      {item.badge && (
+                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
           </nav>
+
+          {/* Bottom Section */}
+          <div className="p-4 border-t border-slate-700">
+            <button className="w-full text-left p-3 rounded-lg hover:bg-slate-700 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Settings className="w-5 h-5" />
+                <span>Settings</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top navigation */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="flex flex-1" />
-            <div className="flex items-center gap-x-4 lg:gap-x-6">
-              <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" />
-              <div className="flex items-center gap-x-4 lg:gap-x-6">
-                <div className="text-sm font-medium text-gray-700">
-                  {merchant?.company_name}
+        {/* Top Header Bar */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                className="lg:hidden p-2 text-slate-600 hover:text-slate-900"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold text-slate-900">
+                  {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
+                </h1>
+                <p className="text-sm text-slate-500">Welcome back, {merchant?.company_name || 'John'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {/* Search Bar */}
+              <div className="relative hidden md:block">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search transactions, wallets..."
+                  className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                />
+              </div>
+              
+              {/* Notifications */}
+              <button className="relative p-2 text-slate-600 hover:text-slate-900">
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+              </button>
+              
+              {/* User Menu */}
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium">{merchant?.company_name || 'John Doe'}</p>
+                  <p className="text-xs text-slate-500">{merchant?.email || 'john@merchant.com'}</p>
+                </div>
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">JD</span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center text-gray-500 hover:text-gray-700"
+                  className="flex items-center text-slate-500 hover:text-slate-700"
                 >
                   <LogOut className="h-5 w-5 mr-1" />
                   Logout
@@ -143,10 +240,8 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Page content */}
-        <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
+        <main className="p-6">
+          {children}
         </main>
       </div>
     </div>

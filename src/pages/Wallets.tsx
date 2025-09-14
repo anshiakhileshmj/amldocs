@@ -1,339 +1,337 @@
-import { useEffect, useState } from 'react'
-import { walletsAPI } from '../lib/api'
+import { useState } from 'react'
 import { 
-  Plus, 
   Wallet, 
+  Plus, 
   Copy, 
   Eye, 
   EyeOff, 
+  ExternalLink,
+  RefreshCw,
+  AlertCircle,
   CheckCircle,
-  XCircle,
-  RefreshCw
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react'
+import { Button, Input, Card, Badge } from '../components/ui'
 import toast from 'react-hot-toast'
 
-interface Wallet {
+interface WalletData {
   id: string
-  chain: string
   address: string
-  is_active: boolean
-  created_at: string
+  chain: string
+  balance: string
+  token: string
+  status: 'active' | 'inactive'
+  createdAt: string
+  lastActivity: string
 }
 
-interface Balance {
-  chain: string
-  token: string
-  balance: string
-  address: string
-}
+const wallets: WalletData[] = [
+  {
+    id: 'wallet_1',
+    address: '0x1234567890abcdef1234567890abcdef12345678',
+    chain: 'Ethereum',
+    balance: '12,450.50',
+    token: 'USDC',
+    status: 'active',
+    createdAt: '2024-01-01',
+    lastActivity: '2 hours ago'
+  },
+  {
+    id: 'wallet_2',
+    address: '0x9876543210fedcba9876543210fedcba98765432',
+    chain: 'Polygon',
+    balance: '8,230.75',
+    token: 'USDT',
+    status: 'active',
+    createdAt: '2024-01-02',
+    lastActivity: '1 day ago'
+  },
+  {
+    id: 'wallet_3',
+    address: '0xabcdef1234567890abcdef1234567890abcdef12',
+    chain: 'BSC',
+    balance: '4,120.00',
+    token: 'USDC',
+    status: 'active',
+    createdAt: '2024-01-03',
+    lastActivity: '3 days ago'
+  },
+  {
+    id: 'wallet_4',
+    address: '0xfedcba0987654321fedcba0987654321fedcba09',
+    chain: 'Solana',
+    balance: '2,767.25',
+    token: 'USDC',
+    status: 'inactive',
+    createdAt: '2024-01-04',
+    lastActivity: '1 week ago'
+  },
+]
+
+const chains = [
+  { value: 'ethereum', label: 'Ethereum', color: 'bg-blue-500' },
+  { value: 'polygon', label: 'Polygon', color: 'bg-purple-500' },
+  { value: 'bsc', label: 'BSC', color: 'bg-yellow-500' },
+  { value: 'avalanche', label: 'Avalanche', color: 'bg-red-500' },
+  { value: 'tron', label: 'Tron', color: 'bg-orange-500' },
+  { value: 'solana', label: 'Solana', color: 'bg-green-500' },
+]
+
+const tokens = [
+  { value: 'USDC', label: 'USDC' },
+  { value: 'USDT', label: 'USDT' },
+  { value: 'DAI', label: 'DAI' },
+  { value: 'BUSD', label: 'BUSD' },
+]
 
 export default function Wallets() {
-  const [wallets, setWallets] = useState<Wallet[]>([])
-  const [balances, setBalances] = useState<Balance[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
-  const [showAddresses, setShowAddresses] = useState<{ [key: string]: boolean }>({})
+  const [showPrivateKeys, setShowPrivateKeys] = useState(false)
+  const [selectedChain, setSelectedChain] = useState('ethereum')
+  const [selectedToken, setSelectedToken] = useState('USDC')
+  const [isCreating, setIsCreating] = useState(false)
 
-  useEffect(() => {
-    fetchWallets()
-  }, [])
+  const totalBalance = wallets.reduce((sum, wallet) => {
+    return sum + parseFloat(wallet.balance.replace(/,/g, ''))
+  }, 0)
 
-  const fetchWallets = async () => {
-    try {
-      const response = await walletsAPI.list()
-      setWallets(response.data)
-    } catch (error) {
-      console.error('Failed to fetch wallets:', error)
-      toast.error('Failed to fetch wallets')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const activeWallets = wallets.filter(wallet => wallet.status === 'active').length
 
-  const fetchBalances = async (walletId: string) => {
-    try {
-      const response = await walletsAPI.getAllBalances(walletId)
-      setBalances(response.data)
-      setSelectedWallet(walletId)
-    } catch (error) {
-      console.error('Failed to fetch balances:', error)
-      toast.error('Failed to fetch balances')
-    }
-  }
-
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
-    toast.success('Copied to clipboard!')
+    toast.success(`${label} copied to clipboard!`)
   }
 
-  const toggleAddressVisibility = (walletId: string) => {
-    setShowAddresses(prev => ({
-      ...prev,
-      [walletId]: !prev[walletId]
-    }))
-  }
-
-  const getChainIcon = (chain: string) => {
-    const icons = {
-      ethereum: 'Ξ',
-      polygon: '⬟',
-      bsc: 'B',
-      avalanche: 'A',
-      tron: 'T',
-      solana: 'S'
+  const openInExplorer = (chain: string, address: string) => {
+    const explorers = {
+      'Ethereum': `https://etherscan.io/address/${address}`,
+      'Polygon': `https://polygonscan.com/address/${address}`,
+      'BSC': `https://bscscan.com/address/${address}`,
+      'Avalanche': `https://snowtrace.io/address/${address}`,
+      'Tron': `https://tronscan.org/#/address/${address}`,
+      'Solana': `https://explorer.solana.com/address/${address}`,
     }
-    return icons[chain as keyof typeof icons] || '?'
+    
+    const url = explorers[chain as keyof typeof explorers]
+    if (url) {
+      window.open(url, '_blank')
+    }
+  }
+
+  const createWallet = async () => {
+    setIsCreating(true)
+    try {
+      // Here you would call your API to create a new wallet
+      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API call
+      toast.success('New wallet created successfully!')
+    } catch (error) {
+      toast.error('Failed to create wallet')
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const getChainColor = (chain: string) => {
-    const colors = {
-      ethereum: 'blue',
-      polygon: 'purple',
-      bsc: 'yellow',
-      avalanche: 'red',
-      tron: 'orange',
-      solana: 'green'
-    }
-    return colors[chain as keyof typeof colors] || 'gray'
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-      </div>
-    )
+    const chainData = chains.find(c => c.label === chain)
+    return chainData?.color || 'bg-slate-500'
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Wallets</h1>
-        <p className="text-gray-600">Manage your blockchain wallets</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Wallet Management</h1>
+          <p className="text-slate-600">Manage your multi-chain wallets and balances</p>
+        </div>
+        <Button onClick={createWallet} disabled={isCreating}>
+          {isCreating ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4 mr-2" />
+          )}
+          Create Wallet
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Wallets List */}
-        <div className="lg:col-span-2">
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Your Wallets</h3>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="btn btn-primary flex items-center"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Create Wallet
-              </button>
+      {/* Wallet Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Total Balance</p>
+              <p className="text-3xl font-bold text-slate-900">${totalBalance.toLocaleString()}</p>
+              <p className="text-sm text-emerald-600 flex items-center mt-1">
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +5.2% from last week
+              </p>
             </div>
-            
-            {wallets.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <Wallet className="h-12 w-12 mx-auto" />
+            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <Wallet className="w-6 h-6 text-emerald-600" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Active Wallets</p>
+              <p className="text-3xl font-bold text-slate-900">{activeWallets}</p>
+              <p className="text-sm text-slate-500 mt-1">Across {chains.length} chains</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Inactive Wallets</p>
+              <p className="text-3xl font-bold text-slate-900">{wallets.length - activeWallets}</p>
+              <p className="text-sm text-amber-600 flex items-center mt-1">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                Needs attention
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-amber-600" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Create New Wallet */}
+      <Card>
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <Plus className="w-5 h-5 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900">Create New Wallet</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Blockchain</label>
+            <div className="grid grid-cols-2 gap-3">
+              {chains.map(chain => (
+                <button 
+                  key={chain.value}
+                  type="button"
+                  onClick={() => setSelectedChain(chain.value)}
+                  className={`p-3 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors ${
+                    selectedChain === chain.value 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-slate-300'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className={`w-3 h-3 rounded-full mx-auto mb-2 ${chain.color}`}></div>
+                    <span className="text-sm font-medium text-slate-700">{chain.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Token</label>
+            <select
+              value={selectedToken}
+              onChange={(e) => setSelectedToken(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {tokens.map(token => (
+                <option key={token.value} value={token.value}>
+                  {token.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      {/* Wallets List */}
+      <Card>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-slate-900">Your Wallets</h3>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowPrivateKeys(!showPrivateKeys)}
+              className="flex items-center text-slate-600 hover:text-slate-900"
+            >
+              {showPrivateKeys ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+              {showPrivateKeys ? 'Hide' : 'Show'} Private Keys
+            </button>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          {wallets.map((wallet) => (
+            <div key={wallet.id} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <Wallet className="w-6 h-6 text-slate-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-medium text-slate-900">{wallet.chain}</h4>
+                      <Badge variant={wallet.status === 'active' ? 'success' : 'warning'}>
+                        {wallet.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      {wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No wallets found</h3>
-                <p className="text-gray-600 mb-4">
-                  Create your first wallet to start accepting payments
-                </p>
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="btn btn-primary"
-                >
-                  Create Wallet
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {wallets.map((wallet) => (
-                  <div
-                    key={wallet.id}
-                    className={`p-4 border rounded-lg ${
-                      selectedWallet === wallet.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
-                    }`}
+                
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-slate-900">${wallet.balance}</p>
+                  <p className="text-sm text-slate-500">{wallet.token}</p>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => copyToClipboard(wallet.address, 'Address')}
+                    className="p-2 text-slate-400 hover:text-slate-600"
+                    title="Copy Address"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className={`bg-${getChainColor(wallet.chain)}-100 rounded-full w-10 h-10 flex items-center justify-center mr-3`}>
-                          <span className={`text-lg font-bold text-${getChainColor(wallet.chain)}-600`}>
-                            {getChainIcon(wallet.chain)}
-                          </span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 capitalize">
-                            {wallet.chain} Wallet
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            {showAddresses[wallet.id] ? wallet.address : `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => toggleAddressVisibility(wallet.id)}
-                          className="p-2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showAddresses[wallet.id] ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => copyToClipboard(wallet.address)}
-                          className="p-2 text-gray-400 hover:text-gray-600"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        
-                        <button
-                          onClick={() => fetchBalances(wallet.id)}
-                          className="btn btn-secondary text-sm"
-                        >
-                          View Balances
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center">
-                        {wallet.is_active ? (
-                          <span className="badge badge-success flex items-center">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="badge badge-danger flex items-center">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Inactive
-                          </span>
-                        )}
-                      </div>
-                      
-                      <span className="text-xs text-gray-500">
-                        Created {new Date(wallet.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Balances */}
-        <div className="lg:col-span-1">
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Balances</h3>
-              {selectedWallet && (
-                <button
-                  onClick={() => fetchBalances(selectedWallet)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            
-            {!selectedWallet ? (
-              <p className="text-gray-500 text-sm">
-                Select a wallet to view balances
-              </p>
-            ) : balances.length === 0 ? (
-              <p className="text-gray-500 text-sm">
-                No balances found for this wallet
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {balances.map((balance, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{balance.token}</p>
-                      <p className="text-sm text-gray-500 capitalize">{balance.chain}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">
-                        {parseFloat(balance.balance).toFixed(6)}
-                      </p>
-                      <p className="text-sm text-gray-500">{balance.token}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Create Wallet Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Create New Wallet</h3>
-                <button
-                  onClick={() => setShowCreateForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => openInExplorer(wallet.chain, wallet.address)}
+                    className="p-2 text-slate-400 hover:text-slate-600"
+                    title="View on Explorer"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Blockchain
-                  </label>
-                  <select className="input">
-                    <option value="ethereum">Ethereum</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="bsc">BSC</option>
-                    <option value="avalanche">Avalanche</option>
-                    <option value="tron">Tron</option>
-                    <option value="solana">Solana</option>
-                  </select>
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-slate-500">Created:</span>
+                    <span className="ml-2 text-slate-900">{wallet.createdAt}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Last Activity:</span>
+                    <span className="ml-2 text-slate-900">{wallet.lastActivity}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${getChainColor(wallet.chain)}`}></div>
+                    <span className="text-slate-500">Chain:</span>
+                    <span className="ml-2 text-slate-900">{wallet.chain}</span>
+                  </div>
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Wallet Address (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Leave empty to generate new wallet"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    If you provide an address, we'll monitor it. If empty, we'll create a new wallet for you.
-                  </p>
-                </div>
-                
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateForm(false)}
-                    className="flex-1 btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 btn btn-primary"
-                  >
-                    Create Wallet
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-      )}
+      </Card>
     </div>
   )
 }
