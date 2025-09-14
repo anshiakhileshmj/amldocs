@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
+import { merchantsAPI } from '../lib/api'
 import { 
   CreditCard, 
   Wallet, 
@@ -37,12 +37,7 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/merchants/stats`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await merchantsAPI.getStats()
       setStats(response.data.statistics)
     } catch (error) {
       console.error('Failed to fetch stats:', error)

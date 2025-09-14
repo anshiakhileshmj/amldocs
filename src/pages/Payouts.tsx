@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { payoutsAPI } from '../lib/api'
 import { 
   Plus, 
   Search, 
@@ -36,12 +36,7 @@ export default function Payouts() {
 
   const fetchPayouts = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/payouts/`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await payoutsAPI.list()
       setPayouts(response.data)
     } catch (error) {
       console.error('Failed to fetch payouts:', error)
@@ -76,12 +71,7 @@ export default function Payouts() {
 
   const executePayout = async (payoutId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      await axios.post(`${import.meta.env.VITE_API_URL}/payouts/${payoutId}/execute`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      await payoutsAPI.execute(payoutId)
       toast.success('Payout executed successfully!')
       fetchPayouts()
     } catch (error) {

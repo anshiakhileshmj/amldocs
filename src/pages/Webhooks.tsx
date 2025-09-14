@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { webhooksAPI } from '../lib/api'
 import { 
   Webhook, 
   TestTube, 
@@ -31,12 +31,7 @@ export default function Webhooks() {
 
   const fetchWebhookLogs = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/webhooks/logs`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await webhooksAPI.getLogs()
       setLogs(response.data)
     } catch (error) {
       console.error('Failed to fetch webhook logs:', error)
@@ -49,12 +44,7 @@ export default function Webhooks() {
   const testWebhook = async () => {
     setTesting(true)
     try {
-      const token = localStorage.getItem('auth_token')
-      await axios.post(`${import.meta.env.VITE_API_URL}/webhooks/test`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      await webhooksAPI.test()
       toast.success('Test webhook sent successfully!')
       fetchWebhookLogs()
     } catch (error) {
@@ -67,12 +57,7 @@ export default function Webhooks() {
 
   const retryWebhook = async (logId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      await axios.post(`${import.meta.env.VITE_API_URL}/webhooks/retry/${logId}`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      await webhooksAPI.retry(logId)
       toast.success('Webhook retry initiated!')
       fetchWebhookLogs()
     } catch (error) {

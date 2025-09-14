@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { paymentsAPI } from '../lib/api'
 import { 
   Plus, 
   Search, 
@@ -36,12 +36,7 @@ export default function Payments() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/payments/`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await paymentsAPI.list()
       setPayments(response.data)
     } catch (error) {
       console.error('Failed to fetch payments:', error)

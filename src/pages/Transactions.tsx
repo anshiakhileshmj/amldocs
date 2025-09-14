@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { transactionsAPI } from '../lib/api'
 import { 
   Search, 
   Copy, 
@@ -40,12 +40,7 @@ export default function Transactions() {
 
   const fetchTransactions = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/transactions/`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await transactionsAPI.list()
       setTransactions(response.data)
     } catch (error) {
       console.error('Failed to fetch transactions:', error)
@@ -80,12 +75,7 @@ export default function Transactions() {
 
   const refreshTransaction = async (txHash: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      await axios.post(`${import.meta.env.VITE_API_URL}/transactions/${txHash}/refresh`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      await transactionsAPI.refresh(txHash)
       toast.success('Transaction status refreshed!')
       fetchTransactions()
     } catch (error) {

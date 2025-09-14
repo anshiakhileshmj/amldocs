@@ -1,6 +1,6 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useState } from 'react'
-import axios from 'axios'
+import { merchantsAPI } from '../lib/api'
 import { User, Save, Copy, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -15,14 +15,9 @@ export default function Profile() {
   const handleSave = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('auth_token')
-      await axios.put(`${import.meta.env.VITE_API_URL}/merchants/profile`, {
+      await merchantsAPI.updateProfile({
         company_name: companyName,
         webhook_url: webhookUrl
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       })
       toast.success('Profile updated successfully!')
     } catch (error) {

@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import axios from 'axios'
-import Cookies from 'js-cookie'
+import { supabase } from '../lib/supabase'
+import { auth } from '../lib/auth'
 import toast from 'react-hot-toast'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-)
 
 interface Merchant {
   id: string
@@ -42,7 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [merchant, setMerchant] = useState<Merchant | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const API_URL = import.meta.env.VITE_API_URL
 
   useEffect(() => {
     checkAuth()
@@ -50,96 +43,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
-      const token = Cookies.get('auth_token')
+      const token = auth.getToken()
       if (!token) {
         setLoading(false)
         return
       }
 
-      const response = await axios.get(`${API_URL}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      setMerchant(response.data)
+      const result = await auth.getProfile()
+      if (result.success) {
+        setMerchant(result.data)
+      } else {
+        auth.logout()
+      }
     } catch (error) {
       console.error('Auth check failed:', error)
-      Cookies.remove('auth_token')
+      auth.logout()
     } finally {
       setLoading(false)
     }
   }
 
   const login = async (email: string, apiKey: string): Promise<boolean> => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        api_key: apiKey
-      })
-
-      const { access_token } = response.data
-      Cookies.set('auth_token', access_token, { expires: 7 })
-
+    const result = await auth.login(email, apiKey)
+    
+    if (result.success) {
       // Get merchant info
-      const merchantResponse = await axios.get(`${API_URL}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${access_token}`
-        }
-      })
-
-      setMerchant(merchantResponse.data)
-      toast.success('Login successful!')
-      return true
-    } catch (error: any) {
-      console.error('Login failed:', error)
-      toast.error(error.response?.data?.detail || 'Login failed')
-      return false
+      const profileResult = await auth.getProfile()
+      if (profileResult.success) {
+        setMerchant(profileResult.data)
+        toast.success('Login successful!')
+        return true
+      }
     }
+    
+    toast.error(result.error || 'Login failed')
+    return false
   }
 
   const register = async (email: string, companyName: string, webhookUrl?: string): Promise<boolean> => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/register`, {
-        email,
-        company_name: companyName,
-        webhook_url: webhookUrl
-      })
-
+    const result = await auth.register(email, companyName, webhookUrl || '')
+    
+    if (result.success) {
       toast.success('Registration successful! Please save your API key.')
       return true
-    } catch (error: any) {
-      console.error('Registration failed:', error)
-      toast.error(error.response?.data?.detail || 'Registration failed')
-      return false
     }
+    
+    toast.error(result.error || 'Registration failed')
+    return false
   }
 
   const logout = () => {
     setMerchant(null)
-    Cookies.remove('auth_token')
+    auth.logout()
     toast.success('Logged out successfully')
   }
 
   const refreshApiKey = async (): Promise<boolean> => {
-    try {
-      const token = Cookies.get('auth_token')
-      if (!token) return false
-
-      const response = await axios.post(`${API_URL}/auth/refresh-api-key`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      setMerchant(response.data)
+    const result = await auth.refreshApiKey()
+    
+    if (result.success) {
+      setMerchant(result.data)
       toast.success('API key refreshed successfully!')
       return true
-    } catch (error: any) {
-      console.error('API key refresh failed:', error)
-      toast.error(error.response?.data?.detail || 'Failed to refresh API key')
-      return false
     }
+    
+    toast.error(result.error || 'Failed to refresh API key')
+    return false
   }
 
   const value = {

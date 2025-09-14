@@ -3,7 +3,7 @@ import { authAPI } from './api'
 
 export const auth = {
   // Login user
-  login: async (email, apiKey) => {
+  login: async (email: string, apiKey: string) => {
     try {
       const response = await authAPI.login({ email, api_key: apiKey })
       const { access_token } = response.data
@@ -13,7 +13,7 @@ export const auth = {
       Cookies.set('api_key', apiKey, { expires: 7 })
       
       return { success: true, data: response.data }
-    } catch (error) {
+    } catch (error: any) {
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Login failed' 
@@ -22,7 +22,7 @@ export const auth = {
   },
 
   // Register user
-  register: async (email, companyName, webhookUrl = '') => {
+  register: async (email: string, companyName: string, webhookUrl: string = '') => {
     try {
       const response = await authAPI.register({
         email,
@@ -31,7 +31,7 @@ export const auth = {
       })
       
       return { success: true, data: response.data }
-    } catch (error) {
+    } catch (error: any) {
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Registration failed' 
@@ -44,7 +44,7 @@ export const auth = {
     try {
       const response = await authAPI.getProfile()
       return { success: true, data: response.data }
-    } catch (error) {
+    } catch (error: any) {
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Failed to get profile' 
@@ -61,7 +61,7 @@ export const auth = {
       Cookies.set('api_key', response.data.api_key, { expires: 7 })
       
       return { success: true, data: response.data }
-    } catch (error) {
+    } catch (error: any) {
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Failed to refresh API key' 

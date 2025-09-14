@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { walletsAPI } from '../lib/api'
 import { 
   Plus, 
   Wallet, 
@@ -41,12 +41,7 @@ export default function Wallets() {
 
   const fetchWallets = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/wallets/`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await walletsAPI.list()
       setWallets(response.data)
     } catch (error) {
       console.error('Failed to fetch wallets:', error)
@@ -58,12 +53,7 @@ export default function Wallets() {
 
   const fetchBalances = async (walletId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/wallets/${walletId}/balances`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await walletsAPI.getAllBalances(walletId)
       setBalances(response.data)
       setSelectedWallet(walletId)
     } catch (error) {
