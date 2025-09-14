@@ -1,6 +1,6 @@
 from solana.rpc.api import Client
-from solana.keypair import Keypair
-from solana.publickey import PublicKey
+from solders.keypair import Keypair
+from solders.pubkey import Pubkey as PublicKey
 from solana.transaction import Transaction
 from solana.system_program import TransferParams, transfer
 from spl.token.client import Token
@@ -64,7 +64,7 @@ class SolanaBlockchain(BlockchainInterface):
     async def create_wallet(self) -> Tuple[str, str]:
         """Create new Solana wallet"""
         keypair = Keypair()
-        return str(keypair.public_key), base58.b58encode(keypair.secret_key).decode()
+        return str(keypair.pubkey()), base58.b58encode(bytes(keypair)).decode()
     
     async def send_transaction(self, from_address: str, to_address: str, amount: Decimal, token: TokenType, private_key: str) -> str:
         """Send SPL token transaction"""
@@ -78,11 +78,11 @@ class SolanaBlockchain(BlockchainInterface):
         try:
             # Create keypair from private key
             secret_key = base58.b58decode(private_key)
-            keypair = Keypair.from_secret_key(secret_key)
+            keypair = Keypair.from_bytes(secret_key)
             
             # Get source token account
             source_response = self.client.get_token_accounts_by_owner(
-                keypair.public_key,
+                keypair.pubkey(),
                 {"mint": PublicKey(mint_address)}
             )
             
@@ -111,7 +111,7 @@ class SolanaBlockchain(BlockchainInterface):
                     source=source_token_account,
                     mint=PublicKey(mint_address),
                     dest=dest_token_account,
-                    owner=keypair.public_key,
+                    owner=keypair.pubkey(),
                     amount=amount_lamports,
                     decimals=6
                 )
